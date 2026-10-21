@@ -5,28 +5,41 @@ END="2026-10-21"
 recs={}
 def add(f,kind):
     for x in json.load(open(P+f)): x["_kind"]=kind; recs.setdefault(x["generated_internal_id"],x)
-for f in ["fusion_grants.json","g_81049_fusion.json","g_81135.json","cfda_81121.json","cfda_81254.json","cfda_81087.json","cfda_81089.json","g_doe_all.json"]: add(f,"grant")
-for f in ["c_doe_kw.json","c_all_microreactor.json"]: add(f,"contract")
-for f in ["l_doe.json","l_rus.json"]: add(f,"loan")
-FUS=re.compile(r"\bFUSION\b(?! SPLICER)|TOKAMAK|STELLARATOR|FIRE COLLABORATIVE|INERTIAL CONFINEMENT|\bIFE\b|SPARC|PLASMA[- ]FACING|BREEDING BLANKET|\bINFUSE\b",re.I)
-FIS=re.compile(r"NUCLEAR|MICROREACTOR|\bSMR\b|HALEU|URANIUM|ENRICHMENT|\bLEU\b|FISSION",re.I)
-GRID=re.compile(r"TRANSMISSION|\bGRID\b|SUBSTATION|DISTRIBUTION LINE|LONG-DURATION ENERGY STORAGE|\bLDES\b|MICROGRID",re.I)
+for f in ["F_doe_grants.json","F_doe_dp.json","F_doe_other.json","F_usda_energy_grants.json","F_kw_grants.json","F_kw_dp.json"]: add(f,"grant")
+for f in ["F_doe_contracts.json","F_kw_contracts.json","c_all_microreactor.json"]: add(f,"contract")
+for f in ["F_doe_loans.json","F_rus_loans.json","F_usda_energy_loans.json"]: add(f,"loan")
+FUS=re.compile(r"\bFUSION\b(?! SPLICER)|TOKAMAK|STELLARATOR|FIRE COLLABORATIVE|INERTIAL CONFINEMENT|\bIFE\b|SPARC|PLASMA[- ]FACING|BREEDING BLANKET|\bINFUSE\b|DEUTERIUM-TRITIUM",re.I)
+FUS_STRONG=re.compile(r"FUSION (ENERGY|POWER|PLASMA|REACTOR|PILOT|FUEL|DEVICE|SYSTEM)|TOKAMAK|STELLARATOR|INERTIAL (CONFINEMENT|FUSION)|MAGNETIC CONFINEMENT|BURNING PLASMA",re.I)
+FIS=re.compile(r"NUCLEAR (ENERGY|POWER|FUEL|REACTOR|PLANT|ENGINEERING|INDUSTRY|WORKFORCE)|MICROREACTOR|MICRO-REACTOR|SMALL MODULAR REACTOR|\bSMRS?\b|ADVANCED REACTOR|HALEU|URANIUM|ENRICHMENT|\bLEU\b|(LIGHT WATER|FAST|MOLTEN SALT|TEST|RESEARCH|POWER) REACTOR|REACTOR (CORE|FUEL|SAFETY|PHYSICS|DESIGN|CONTROL|EXHAUST|SYSTEM)|FISSION (REACTOR|POWER|ENERGY|PRODUCT)|NUCLEAR FUEL",re.I)
+GRID=re.compile(r"TRANSMISSION|\bGRID\b|SUBSTATION|DISTRIBUTION (LINE|SYSTEM)|POWER LINE|ENERGY STORAGE|BATTERY STORAGE|LONG-DURATION|\bLDES\b|MICROGRID",re.I)
 GEO=re.compile(r"GEOTHERMAL",re.I)
 HYD=re.compile(r"HYDROPOWER|HYDROELECTRIC|WATER POWER|MARINE ENERGY|WAVE ENERGY|TIDAL|HYDROKINETIC|PUMPED STORAGE",re.I)
-FOS=re.compile(r"POWER PLANT|COAL[- ]FIRED|COAL PLANT|GAS TURBINE|COMBUSTION TURBINE|TURBINE|COFIRING|CO-FIRING|ROTATING DETONATION|BOILER|GENERATING (STATION|UNIT)|POWER GENERATION",re.I)
-OTH=re.compile(r"SOLAR|PHOTOVOLTAIC|WIND (ENERGY|TURBINE|POWER)|OFFSHORE WIND|BIOPOWER|POWER GENERATION|ELECTRICITY GENERATION",re.I)
-EXCL=re.compile(r"FUSION WELDING|MAGNITO|NONPROLIFERATION|CRITICAL MINERAL|RARE EARTH|GRAPHITE|CARBON STORAGE|CARBON CAPTURE TEST CENTER|NAVAL REACTORS|INCURRED COST AUDIT|SPENT NUCLEAR FUEL|RADIOACTIVE WASTE|WASTE TRANSMUT|DARK MATTER|QUANTUM|WILDFIRE",re.I)
+FOS=re.compile(r"POWER PLANT|COAL[- ]FIRED|COAL PLANT|COAL RECOMMISSION|COAL RELIABILITY|MODERNIZED COAL|GAS TURBINE|COMBUSTION TURBINE|TURBINE|COFIRING|CO-FIRING|ROTATING DETONATION|BOILER|GENERATING (STATION|UNIT|FACILITY)|POWER GENERATION|POWER STATION|COAL EXPORT|WEST GATEWAY TERMINAL",re.I)
+OTH=re.compile(r"SOLAR|PHOTOVOLTAIC|WIND (ENERGY|TURBINE|POWER|GENERATION)|OFFSHORE WIND|BIOPOWER|POWER GENERATION|ELECTRICITY GENERATION|RENEW(ABLE)? ENERGY SYS|RENEWABLE ENERGY (SYSTEM|LOAN)|GUARANTEED RENEWABLE",re.I)
+EXCL=re.compile(r"FUSION WELDING|MAGNITO|NONPROLIFERATION|CRITICAL MINERAL|RARE EARTH|GRAPHITE|CARBON STORAGE|CARBON CAPTURE TEST CENTER|NAVAL REACTORS|INCURRED COST AUDIT|SPENT NUCLEAR FUEL|RADIOACTIVE WASTE|WASTE TRANSMUT|DARK MATTER|QUANTUM|WILDFIRE|TRANSMISSION ELECTRON|ROGUE TRANSMISSION|SUBSCRIPTION|SINGLET FISSION|NUCLEAR MAGNETIC|NUCLEOSYNTHESIS|ASTROPHYS|HEAVY-FLAVOR|MANY-BODY|NUCLEAR (SECURITY|WEAPON|STOCKPILE|FORENSIC|DETONATION|EXPLOSIVE|MATTER|STRUCTURE|DATA|PHYSICS|REACTION)|STOCKPILE STEWARDSHIP|ENERGY EFFICIEN|PIPELINE COMPANY|TRAFFIC CONTROL|SOLARWINDS|SOLAR ATMOSPHERES|WINDOW WASHING|OSTI FACILITY|JANITORIAL|\bLAWN\b|LANDSCAP|SNOW REMOVAL|\bHVAC\b|MARVAIR|\bROOF(ING)?\b|PRINTERS?\b|ASPHALT|\bFENCE\b|ENTRY GATE|SWING GATE|SNOW GATES|SOFTWARE|LICENSE|AUDIT|LEGAL ADVISORY|CLASSROOM|SECURE TRANSPORTATION|BUSINESS ADMINISTRATION SUPPORT|TRANSMISSION X-RAY|STRESS TRANSMISSION|TRANSMISSION BELT|PARR INSTRUMENT|HAZMAT|MEZZANINE|SPILL PREVENTION|FUEL CELL VEHICLE|ELECTRIC VEHICLE|AUTOMOTIVE|BUILDING TECHNOLOG",re.I)
 def classify(x):
-    t=" ".join(str(x.get(k) or "") for k in ["Description","Recipient Name"]); cfda=x.get("CFDA Number") or ""
+    t=" ".join(str(x.get(k) or "") for k in ["Description","Recipient Name"]); cfda=x.get("CFDA Number") or ""; rn=x.get("Recipient Name") or ""
     if x["_kind"]=="loan":
-        return "Federal power loans: DOE (LPO/EDF)" if cfda=="81.126" else "Federal power loans: USDA rural electric (RUS)"
-    if EXCL.search(t) or cfda in ("81.117","81.086","81.041","81.042","81.128","81.119"): return None
-    if FUS.search(t) and cfda in ("81.049","81.135","81.302",""): return "Fusion"
-    if cfda in ("81.121","81.114") or FIS.search(t): return "Nuclear fission & fuel"
+        if cfda=="81.126":
+            if rn.startswith(("GEORGIA POWER","ALABAMA POWER")): return "Multi-technology utility programs"
+            if rn.startswith("AEP TEXAS"): return "Grid, transmission & storage"
+            return "Nuclear fission & fuel"
+        if cfda=="10.850": return "Rural electric co-ops (USDA RUS, purpose not itemized)"
+        if cfda=="10.868": return "Other generation (solar, wind, etc.)" if OTH.search(t) and not re.search("EFFICIEN",t) else None
+        return None
+    if rn.startswith("SOLSTICE ADVANCED MATERIALS") and "METROPOLIS" in t.upper(): return "Nuclear fission & fuel"
+    if EXCL.search(t) or cfda in ("81.117","81.086","81.041","81.042","81.128","81.119","81.112","81.113","81.104","81.214","10.720","10.751","81.124"): return None
+    tfull=t; t=rn+" "+str(x.get("Description") or "")[:200]   # match power terms in the title zone only, not in long abstracts
+    if cfda and not cfda.startswith(("81.","10.")) and not FUS_STRONG.search(str(x.get("Description") or "").split(" -")[0][:200]): return None   # other agencies: fusion-energy titles only
+    if cfda=="10.868": return "Other generation (solar, wind, etc.)" if OTH.search(t) else None
+    if cfda=="10.859": return "Grid, transmission & storage"
+    if (FUS.search(t) and cfda in ("81.049","81.135","81.302","")) or FUS_STRONG.search(t): return "Fusion"
+    if cfda in ("81.089","81.255") and (FOS.search(tfull) or re.search("DEFENSE PRODUCTION ACT",t,re.I)): return "Coal & gas power"
+    if cfda in ("81.121","81.114","81.123") or FIS.search(t): return "Nuclear fission & fuel"
     if GEO.search(t): return "Geothermal"
     if HYD.search(t): return "Hydro & marine"
     if cfda in ("81.254","81.300","81.122") or GRID.search(t): return "Grid, transmission & storage"
-    if FOS.search(t) and cfda in ("81.089",""): return "Coal & gas power"
+    if FOS.search(t) and cfda in ("81.089","81.255",""): return "Coal & gas power"
     if OTH.search(t) and cfda in ("81.087","81.135","81.255","81.089",""): return "Other generation (solar, wind, etc.)"
     return None
 cand={k:v for k,v in recs.items() if classify(v)}
@@ -40,7 +53,8 @@ def g(k):
         except Exception: pass
     return k,None
 todo=[k for k in cand if k not in det]
-with cf.ThreadPoolExecutor(6) as ex:
+print("details to fetch",len(todo),flush=True)
+with cf.ThreadPoolExecutor(8) as ex:
     for k,v in ex.map(g,todo): det[k]=v
 json.dump(det,open(cache,"w"))
 zc=pd.read_csv(R+"2024_Gaz_zcta_national.txt",sep="\t",dtype=str); zc.columns=[c.strip() for c in zc.columns]
@@ -95,9 +109,55 @@ ann=[
  dict(category="Coal & gas power",recipient="13 coal plants + West Gateway export terminal (DPA Title III)",program="DOE Defense Production Act Title III coal selections",amount=500e6,date="2026-06-04",state="MULTI",lat=None,lon=None,url="https://www.energy.gov/hgeo/funding-defense-production-act-title-iii",note="'Up to' amount; multi-site, not mapped. $75M of it is for a coal export terminal"),
  dict(category="Fusion",recipient="FIRE Collaboratives (7 teams) + INFUSE (20 projects)",program="DOE Office of Science FES: FIRE $128M + INFUSE $6.1M",amount=134.1e6,date="2025-09-10",state="MULTI",lat=None,lon=None,url="https://www.energy.gov/articles/energy-department-announces-134-million-advance-us-fusion-leadership-through-targeted",note="Multi-year total (FIRE: $31M in FY2025 dollars, rest subject to appropriations). Some FIRE grants already appear as obligated USAspending awards above, so this figure partly overlaps them. Shown separately and never added to obligated totals"),
 ]
-an=pd.DataFrame(ann).assign(status="Announced / selected, not yet obligated in USAspending",source="DOE announcement",amount_used_in_totals=lambda x:x.amount,state_for_totals=lambda x:x.state.where(~x.state.isin(["MULTI","PR"])))
-out=pd.concat([df,an],ignore_index=True).sort_values(["status","amount"],ascending=[True,False])
+an=pd.DataFrame(ann).assign(status="Announced / selected, not yet obligated in USAspending",source="DOE announcement",state_for_totals=lambda x:x.state.where(~x.state.isin(["MULTI","PR"])))
+an["amount_used_in_totals"]=an.amount
+# --- reconcile announcements with awards that have since been obligated (avoid double counting) ---
+U=lambda c:df.recipient.str.upper().str.startswith(c)
+desc=df.description.fillna("").str.upper()
+r175=["APPALACHIAN POWER","BUCKEYE POWER","DUKE ENERGY CAROLINAS","KENTUCKY UTILITIES","MONONGAHELA POWER","OHIO VALLEY ELECTRIC"]
+dpa=["WISCONSIN POWER AND LIGHT","ARIZONA ELECTRIC POWER COOP","BASIN ELECTRIC","DUKE ENERGY KENTUCKY","DUKE ENERGY PROGRESS","EAST KENTUCKY POWER","GRAND RIVER DAM","HALLADOR POWER","OKLAHOMA GAS AND ELECTRIC","WHEELING POWER","INSIGHT TERMINAL"]
+coal=df.category.eq("Coal & gas power")
+big=df.amount.ge(5e6); m175=coal&U(tuple(r175)); mdpa=coal&U(tuple(dpa))&big; mfire=df.category.eq("Fusion")&desc.str.contains("FIRE COLLABORATIVE|FUSION INNOVATION RESEARCH ENGINE|INFUSE")
+rec={}
+def reduce(key,mask,label):
+    o=df.loc[mask,"amount_used_in_totals"].sum(); j=an.index[an.recipient.str.startswith(key)][0]; a0=an.at[j,"amount"]; rem=max(a0-o,0)
+    an.at[j,"amount_used_in_totals"]=rem
+    an.at[j,"note"]=(an.at[j,"note"] or "")+f". Announced ${a0/1e6:,.1f}M; ${o/1e6:,.1f}M of it already appears as obligated awards ({label}), so only the ${rem/1e6:,.1f}M remainder is counted here."
+    rec[key]=(a0,o,rem,int(mask.sum()))
+reduce("6 rural coal",m175,"Appalachian Power, Buckeye, Duke Energy Carolinas, Kentucky Utilities, Monongahela Power, OVEC")
+reduce("13 coal plants",mdpa,"DPA selectees found in USAspending")
+reduce("FIRE Collaboratives",mfire,"FIRE collaborative / INFUSE grants")
+for nm in ["AES WARRIOR","AES WR","TERRA ENERGY","TERRASPARK","AES PUERTO","TENNESSEE VALLEY AUTHORITY","HOLTEC"]:
+    hit=df[U(nm)&df.category.isin(["Coal & gas power","Nuclear fission & fuel"])]
+    print("announced-match check",nm,len(hit),hit[["recipient","amount","description"]].head(3).to_string() if len(hit) else "")
+print("reconciled:",rec)
+an=an[an.amount_used_in_totals>0]
+out=pd.concat([df,an],ignore_index=True)
 out=out[out.amount>0]  # drop $0 records (de-obligated or placeholder)
+out["funding_type"]=out.apply(lambda r:"Announced, not yet obligated" if r.status.startswith("Announced") else ("Loan (face value)" if r.status.startswith("Loan") else ("Contract" if str(r.program).startswith("Contract") else "Grant / cooperative agreement / other assistance")),axis=1)
+out["amount_counted"]=out.amount_used_in_totals.fillna(out.amount)
+gb=out.description.fillna("").str.contains("GUAR FOR BONDS")
+out.loc[gb,"note"]="USDA guarantee on bonds issued by a cooperative lender, which relends to rural electric co-ops in many states. Counted where the lender is based."
+# --- group pieces into projects: same recipient + same site (place-of-performance point) + same category ---
+def norm(s): s=re.sub(r"[^A-Z0-9 ]"," ",str(s).upper()); s=re.sub(r"\b(INC|LLC|CORP|CORPORATION|CO|COMPANY|THE|LP|L P|L L C)\b"," ",s); return " ".join(s.split())
+def title(r):
+    t=re.sub(r"^(NEW (AWARD|GRANT|COOPERATIVE AGREEMENT)[^A-Z]*|THE PURPOSE OF THIS (ACTION|DOCUMENT) IS TO\s*)","",str(r.description or "").upper()).strip()
+    return norm(t)[:40]
+out["site"]=out.lat.round(2).astype(str)+","+out.lon.round(2).astype(str)
+out["pkey"]=out.apply(lambda r:"|".join([norm(r.recipient),str(r.state),str(r.site),str(r.category)]),axis=1)
+ids={k:f"P{i+1:04d}" for i,k in enumerate(out.groupby("pkey").amount_counted.sum().sort_values(ascending=False).index)}
+out["project_id"]=out.pkey.map(ids)
+g=out.groupby("project_id")
+out["project_pieces"]=g.amount.transform("size")
+out["project_combined_total"]=g.amount_counted.transform("sum")
+out["project_announced_part"]=out.amount_counted.where(out.funding_type.str.startswith("Announced"),0).groupby(out.project_id).transform("sum")
+out["project_name"]=out.recipient+" · "+out.category+out.project_pieces.map(lambda n:f" ({n} awards)" if n>1 else "")
+out=out.drop(columns=["pkey","site"]).sort_values(["project_combined_total","project_id","amount_counted"],ascending=[False,True,False])
+cols=["project_id","project_name","project_combined_total","project_announced_part","project_pieces","category","funding_type","status","recipient","program","agency","amount","amount_counted","amount_used_in_totals","subsidy_cost","date","period_start","state","state_for_totals","lat","lon","geocode","description","flag","note","award_id","source","url"]
+out=out[cols]
 out.to_csv(D+"layer6_power_fusion_awards.csv",index=False)
-print(out.groupby(["status","category"]).agg(n=("amount","size"),total=("amount_used_in_totals","sum")).assign(total=lambda x:(x.total/1e6).round(1)))
-print("no location:",out[out.lat.isna()][["recipient","state"]].to_string())
+pr=out.drop_duplicates("project_id")
+print("awards",len(out),"projects",len(pr),"mapped projects",pr.lat.notna().sum(),"min",pr.project_combined_total.min(),"max",pr.project_combined_total.max())
+print(out.groupby("category").agg(n=("amount","size"),projects=("project_id","nunique"),total=("amount_counted","sum")).assign(total=lambda x:(x.total/1e6).round(1)))
+print(out.groupby("funding_type").amount_counted.sum()/1e6)
+print("no location:",pr[pr.lat.isna()][["project_name","state","project_combined_total"]].to_string())
