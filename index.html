@@ -49,7 +49,7 @@ select{width:100%;margin:2px 0 4px}
  <div id="decadeLbl"></div>
  <input type="range" id="decade" min="1900" max="2020" step="10" value="2020">
  <div id="ticks"><span>1900s</span><span>1940s</span><span>1980s</span><span>2020s/today</span></div>
- <div id="tabs"><button type="button" class="tab active" data-tab="mfg" title="Manufacturing jobs, federal spending, and power &amp; fusion investments">Manufacturing &amp; spending</button><button type="button" class="tab" data-tab="congress" title="US Senate and House party control by state and district">Congress</button></div>
+ <div id="tabs"><button type="button" class="tab active" data-tab="mfg" title="Manufacturing jobs and federal spending">Manufacturing &amp; spending</button><button type="button" class="tab" data-tab="congress" title="US Senate and House party control by state and district">Congress</button><button type="button" class="tab" data-tab="power" title="Power &amp; fusion investments since Jan 20, 2025 (Layer 6)">Power &amp; fusion</button></div>
  <div class="tabpane" id="tab-mfg">
  <h3>Shaded layer (pick one)</h3>
  <label><input type="radio" name="layer" value="mfg" checked> 1. Manufacturing jobs</label>
@@ -62,13 +62,6 @@ select{width:100%;margin:2px 0 4px}
    <select id="period"><option value="trump2">Trump admin: Jan 20, 2025 to Oct 21, 2026</option><option value="2020pre">Comparison: Jan 1, 2020 to Jan 19, 2025</option></select>
    <select id="measure"><option value="contracts_plus_grants">Contracts + grants</option><option value="contracts">Contracts only</option><option value="grants">Grants only</option><option value="all_award_types">All award types (incl. direct payments, loans)</option></select>
    <select id="scale"><option value="total">Total dollars</option><option value="percap">Per capita</option><option value="permonth">Dollars per month (compare periods)</option></select></div>
- <label id="pwLbl"><input type="radio" name="layer" value="power"> 6. Power &amp; fusion investments</label>
- <div id="powerOpts" style="margin-left:18px">
-   <select id="pwView" title="Points only, or points plus a per-state choropleth"><option value="both">Points + state totals</option><option value="points">Points only</option><option value="state">State totals only</option></select>
-   <select id="pwMeasure" title="Which money the state shading sums; the three are never added together"><option value="obl">Obligated grants + contracts</option><option value="loan">Loans (face value)</option><option value="ann">Announced, not yet obligated</option></select>
-   <select id="pwCat" title="Filter points and state totals by category"><option value="all">All categories</option></select>
-   <select id="pwPts" title="Which award statuses to show as points"><option value="all">Points: all statuses</option><option value="obl">Points: obligated only</option><option value="loan">Points: loans only</option><option value="ann">Points: announced only</option></select>
-   <select id="pwScale" title="State totals in dollars or per person"><option value="total">Total dollars</option><option value="percap">Per capita</option></select></div>
  <label><input type="radio" name="layer" value="none"> No shading</label>
  </div>
  <div class="tabpane" id="tab-congress" style="display:none">
@@ -77,6 +70,16 @@ select{width:100%;margin:2px 0 4px}
  <label><input type="radio" name="layer" value="house"> 5. US House, state delegations</label>
  <label id="cdLbl"><input type="radio" name="layer" value="cds"> 5b. US House, by district (119th)</label>
  <label><input type="radio" name="layer" value="none" data-tab="congress"> No shading</label>
+ </div>
+ <div class="tabpane" id="tab-power" style="display:none">
+ <h3>Shaded layer</h3>
+ <label id="pwLbl"><input type="radio" name="layer" value="power"> 6. Power &amp; fusion investments</label>
+ <div id="powerOpts" style="margin-left:18px">
+   <select id="pwView" title="Points only, or points plus a per-state choropleth"><option value="both">Points + state totals</option><option value="points">Points only</option><option value="state">State totals only</option></select>
+   <select id="pwMeasure" title="Which money the state shading sums; the three are never added together"><option value="obl">Obligated grants + contracts</option><option value="loan">Loans (face value)</option><option value="ann">Announced, not yet obligated</option></select>
+   <select id="pwCat" title="Filter points and state totals by category"><option value="all">All categories</option></select>
+   <select id="pwPts" title="Which award statuses to show as points"><option value="all">Points: all statuses</option><option value="obl">Points: obligated only</option><option value="loan">Points: loans only</option><option value="ann">Points: announced only</option></select>
+   <select id="pwScale" title="State totals in dollars or per person"><option value="total">Total dollars</option><option value="percap">Per capita</option></select></div>
  </div>
  <h3>Point overlays</h3>
  <label id="ptLbl"><input type="checkbox" id="points" checked> 2. Largest federal awards since Jan 20, 2025</label>
@@ -258,13 +261,13 @@ function hideTip(){tip.style("display","none")}
 states.on("mousemove",(e,d)=>showTip(e,tipFn(d.properties.STUSPS))).on("mouseout",hideTip);
 circ.on("mousemove",(e,d)=>showTip(e,`<b>${d.recipient}</b><br>${d.agency}${d.sub_agency&&d.sub_agency!=d.agency?" / "+d.sub_agency:""}<br>Obligated: <b>${money(d.amount_obligated)}</b><br>Signed: ${d.date_signed||"n/a"}${d.period_start?" · period start "+d.period_start:""}<br>${d.pop_city||d.pop_county||""}, ${d.pop_state} ${d.pop_zip5||""} (${d.geocode})<br>${d.category}${d.naics?" · NAICS "+d.naics:""}<br><span style="font-size:11px">${d.description}</span><br><i>Award ${d.award_id}. Click to open on USAspending.gov</i>`)).on("mouseout",hideTip);
 // init from hash
-let curTab="mfg"; const CONG=["senate","house","cds"]; const lastLayer={mfg:"mfg",congress:"senate"};
+let curTab="mfg"; const CONG=["senate","house","cds"]; const TAB_OF=L=>CONG.includes(L)?"congress":L=="power"?"power":"mfg"; const lastLayer={mfg:"mfg",congress:"senate",power:"power"};
 function setTab(t,keepLayer){curTab=t;d3.selectAll("#tabs button").classed("active",function(){return this.dataset.tab==t});
- d3.select("#tab-mfg").style("display",t=="mfg"?null:"none");d3.select("#tab-congress").style("display",t=="congress"?null:"none");
- if(!keepLayer){const cur=d3.select("input[name=layer]:checked").property("value");const inTab=t=="congress"?CONG.includes(cur):!CONG.includes(cur);
+ ["mfg","congress","power"].forEach(x=>d3.select("#tab-"+x).style("display",t==x?null:"none"));
+ if(!keepLayer){const cur=d3.select("input[name=layer]:checked").property("value");const inTab=TAB_OF(cur)==t;
   if(!(inTab&&cur!="none"))d3.select(`#tab-${t} input[name=layer][value=${lastLayer[t]}]`).property("checked",true);}}
 d3.selectAll("#tabs button").on("click",function(){const cur=d3.select("input[name=layer]:checked").property("value");if(cur!="none")lastLayer[curTab]=cur;setTab(this.dataset.tab);render()});
-const h=st(); if(h.get("layer")){const L=h.get("layer");const t=h.get("tab")||(CONG.includes(L)?"congress":"mfg");setTab(t,true);d3.select(`#tab-${t} input[name=layer][value=${L}]`).property("checked",true)}
+const h=st(); if(h.get("layer")){const L=h.get("layer");let t=h.get("tab");if(!t||(L!="none"&&TAB_OF(L)!=t)||d3.select(`#tab-${t} input[name=layer][value=${L}]`).empty())t=TAB_OF(L);setTab(t,true);d3.select(`#tab-${t} input[name=layer][value=${L}]`).property("checked",true)}
 ["decade","mfgMode:mode","period","measure","scale","pwView","pwMeasure","pwCat","pwPts","pwScale"].forEach(k=>{const[id,key]=k.split(":");const v=h.get(key||id);if(v)d3.select("#"+id).property("value",v)});
 if(h.get("points")=="0")d3.select("#points").property("checked",false);
 d3.selectAll("input,select").on("input change",render); render();
