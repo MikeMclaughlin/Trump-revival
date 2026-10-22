@@ -7,7 +7,7 @@
 body{font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;margin:0;color:#1a202c;background:#f7fafc}
 header{padding:10px 16px;background:#1a365d;color:#fff}
 header h1{font-size:19px;margin:0 0 4px}
-#totals{font-size:13px;opacity:.95}
+#totals{font-size:13px;padding:10px 16px;background:#1a365d;color:#fff}
 #wrap{display:flex;flex-wrap:wrap}
 #controls{width:300px;padding:10px 14px;box-sizing:border-box;font-size:13px;background:#fff;border-right:1px solid #e2e8f0}
 #controls h3{font-size:13px;margin:12px 0 4px;text-transform:uppercase;color:#4a5568}
@@ -42,7 +42,7 @@ input[type=range]{width:100%}
 select{width:100%;margin:2px 0 4px}
 </style></head><body>
 <header><h1>Is US manufacturing being rebuilt? Factory jobs, federal spending and Congress, by state</h1>
-<div id="totals"></div></header>
+</header>
 <div id="wrap">
 <div id="controls">
  <h3>Decade</h3>
@@ -83,7 +83,6 @@ select{width:100%;margin:2px 0 4px}
  <h3>Point overlays</h3>
  <label id="ptLbl"><input type="checkbox" id="points" checked> 2. Largest federal awards since Jan 1, 2016</label>
  <div style="margin-left:18px;font-size:11px;color:#4a5568">Circle size = obligated amount. Click a circle to open the award on USAspending.gov.</div>
- <div style="margin-left:18px"><select id="ptColor" title="Color the award points by award category or by the administration in office when the award was signed"><option value="cat">Color: award category</option><option value="admin">Color: administration</option></select></div>
  <div id="ptCats" style="margin-left:18px;font-size:11px"></div>
  <p style="font-size:11px;color:#718096">Announced private investments (e.g. White House investment lists) are <b>not</b> included: no state-geocoded official list was available to source reliably. Federal spending only.</p>
 </div>
@@ -104,6 +103,7 @@ select{width:100%;margin:2px 0 4px}
 <li><b>Layer 6 (Power &amp; fusion investments), Jan 20, 2025 to Oct 21, 2026:</b> USAspending.gov API v2, every award first made on or after Jan 20, 2025, with no top-N cap and no minimum amount. Each pull was paged to the end and its record count checked against USAspending's own count: all Department of Energy grants and cooperative agreements (1,740), other financial assistance (245), definitive contracts and orders (2,870) and loans (10); USDA Rural Electrification loans and loan guarantees (10.850, 137); USDA Rural Energy for America grants and loans plus High Energy Cost grants (10.868, 10.859; 453); and all-agency awards matching "microreactor", "small modular reactor" or "fusion energy". Records were sorted into power categories by program and by power terms in the award title. Not counted: non-power items (critical minerals, carbon storage, nonproliferation, weapons and basic nuclear physics, energy efficiency, buildings, vehicles, gas pipelines) and facility upkeep (janitorial, lawn care, HVAC, roofing, software licenses, audits, legal and admin support). <b>Everything is consolidated:</b> grants, contracts, loans (counted at face value; the subsidy cost is in the tooltip and CSV) and announced awards are added into one "total federal funding" figure per project, per state and per category. Pieces are grouped into one project (one marker) when they share recipient, site and category. Constellation Crane is counted at DOE's $1.0B (USAspending shows $3.0B face value; DOE and Constellation's SEC 8-K say $1.0B). "Conditional commitment" loans (Westinghouse ANDP, $17.5B; SHINE, $263M) are recorded in USAspending but have not closed. <b>Announced, not yet obligated</b> = official DOE selections with no matching USAspending award as of Oct 21, 2026: TVA and Holtec small modular reactors (Dec 2, 2025), four coal-recommissioning Topic 1 selections, and the remainders of the $500M Defense Production Act coal program (Jun 4, 2026) and the $134.1M FIRE + INFUSE fusion program (Sep 10, 2025). Each remainder is the announced amount minus the matching awards already in USAspending. The $175M rural coal announcement (Feb 12, 2026) is now fully obligated to its six named utilities, so nothing extra is counted for it. Announced amounts are included in the totals and flagged with a dashed marker outline. No private investment is included. Point locations come from the place-of-performance ZIP or county, otherwise the recipient ZIP (flagged). AEP Texas is placed at the Texas center (statewide program). Westinghouse ANDP is plotted at the recipient HQ and left out of state totals (reactor sites not named). Not in USAspending, so not shown: TVA and Bonneville spending (self-funded), Milestone-program fusion payments, Interior/Reclamation hydropower, DOE contract vehicles (IDVs) until orders are placed, and Palisades (its DOE loan closed Sep 2024, before this period).</li>
 <li><b>Base map:</b> Census 2024 cartographic boundary file cb_2024_us_state_20m (simplified), Albers USA projection with AK and HI inset. Population: Census NST-EST2025-ALLDATA and st-est00int-alldata.</li>
 </ul></div>
+<div id="totals"></div>
 <script>
 const DATA=/*__DATA__*/null;
 const fmt=d3.format(","), fmt1=d3.format(",.1f"), money=v=>v==null?"n/a":(Math.abs(v)>=1e9?"$"+d3.format(",.1f")(v/1e9)+"B":Math.abs(v)>=1e6?"$"+d3.format(",.1f")(v/1e6)+"M":"$"+fmt(Math.round(v)));
@@ -126,10 +126,7 @@ const circ=gP.selectAll("circle").data(pts.sort((a,b)=>b.amount_obligated-a.amou
  .attr("cx",d=>proj([d.lon,d.lat])[0]).attr("cy",d=>proj([d.lon,d.lat])[1]).attr("r",d=>Math.max(2.5,rS(d.amount_obligated))).attr("fill",d=>CATCOL[d.category]||"#718096")
  .on("click",(e,d)=>window.open(d.url,"_blank"));
 const ADMCOL={"Obama":"#6b46c1","Trump I":"#e53e3e","Biden":"#319795","Trump II":"#7b341e"};
-const ADMLBL={"Obama":"Obama (Jan 1, 2016 to Jan 19, 2017)","Trump I":"Trump I (Jan 20, 2017 to Jan 19, 2021)","Biden":"Biden (Jan 20, 2021 to Jan 19, 2025)","Trump II":"Trump II (Jan 20, 2025 to today)"};
-function ptLegend(byAdm){const e=byAdm?Object.entries(ADMCOL).map(([k,c])=>[ADMLBL[k],c]):Object.entries(CATCOL);
- d3.select("#ptCats").html(e.map(([k,c])=>`<div><span style="display:inline-block;width:10px;height:10px;border-radius:5px;background:${c}"></span> ${k}</div>`).join(""));}
-ptLegend(false);
+d3.select("#ptCats").html(Object.entries(CATCOL).map(([k,c])=>`<div><span style="display:inline-block;width:10px;height:10px;border-radius:5px;background:${c}"></span> ${k}</div>`).join(""));
 const DEC_LBL=d=>d==2020?"2020s / today":d+"s";
 const MFG_DEC_NOTE={1900:"1900s = 1899 Census of Manufactures (wage earners only)",1910:"1910s = 1919 Census of Manufactures (wage earners only)",1920:"1920s = 1929 Census of Manufactures (wage earners only)",1930:"1930s = 1939 BLS annual average (only 1930s year available)"};
 // ---- Layer 6: power & fusion (consolidated: every award, loan and announcement grouped into projects) ----
@@ -167,7 +164,7 @@ function pwSummary(){const tot=d3.sum(PROJ,d=>d.total),ann=d3.sum(PROJ,d=>d.ann)
   by.map(([c,[t,a,n]])=>`${c} ${money(t)}${a>0?` (incl. ${money(a)} announced)`:""}`).join(" · ")+`. Fusion is ${fmt1(fu[1][0]/tot*100)}% of the total. No private investment included.`}
 function st(){const h=new URLSearchParams(location.hash.slice(1));return h}
 function S(){return{decade:+d3.select("#decade").property("value"),layer:d3.select("input[name=layer]:checked").property("value"),mfgMode:d3.select("#mfgMode").property("value"),
- period:d3.select("#period").property("value"),measure:d3.select("#measure").property("value"),scale:d3.select("#scale").property("value"),points:d3.select("#points").property("checked"),ptColor:d3.select("#ptColor").property("value"),
+ period:d3.select("#period").property("value"),measure:d3.select("#measure").property("value"),scale:d3.select("#scale").property("value"),points:d3.select("#points").property("checked"),
  pwView:d3.select("#pwView").property("value"),pwCat:d3.select("#pwCat").property("value"),pwPts:d3.select("#pwPts").property("value"),pwScale:d3.select("#pwScale").property("value")}}
 function spendPeriod(s){return s.decade==2020?s.period:s.decade==2010?"2010s":s.decade==2000?"2000s":null}
 function spendVal(s,r){if(!r)return null;let v=r[s.measure];if(v==null)return null;if(s.scale=="percap")return v/r.population;if(s.scale=="permonth")return v/r.months;return v}
@@ -189,7 +186,6 @@ function render(){
  if(s.layer=="cds"&&s.decade!=2020){d3.select("input[value=house]").property("checked",true);s.layer="house"}
  d3.select("#ptLbl").classed("dis",s.decade!=2020).select("input").property("disabled",s.decade!=2020);
  const showPts=s.points&&s.decade==2020; gP.style("display",showPts?null:"none");
- const byAdm=s.ptColor=="admin"; circ.attr("fill",d=>byAdm?(ADMCOL[d.administration]||"#718096"):(CATCOL[d.category]||"#718096")); ptLegend(byAdm);
  gC.style("display",s.layer=="cds"?null:"none"); gS.style("display",s.layer=="cds"?"none":null);
  let notes=[]; if(s.points&&s.decade!=2020)notes.push("Layer 2 (award points, signed since Jan 1, 2016) is shown only on the 2020s/today setting; points hidden for this decade.");
  let fill=()=>"#edf2f7", nod=()=>false, tot="";
@@ -268,7 +264,7 @@ function render(){
  const off=DATA.L2.filter(d=>!proj([d.lon,d.lat]));
  d3.select("#totals").html([tot,showPts?`Layer 2: ${pts.length} largest awards since Jan 1, 2016 plotted, ${money(ptot)} obligated (by administration when signed: ${Object.keys(ADMCOL).map(a=>{const x=pts.filter(d=>d.administration==a);return `${a} ${x.length} awards ${money(d3.sum(x,d=>d.amount_obligated))}`}).join(" · ")}) (+${off.length} in ${[...new Set(off.map(d=>d.pop_state))].join(", ")}, ${money(d3.sum(off,d=>d.amount_obligated))}, listed in the CSV but outside this map)`:""].filter(x=>x).join(" &nbsp;|&nbsp; "));
  note(notes.join(" "));
- location.replace("#"+new URLSearchParams({tab:curTab,layer:s.layer,decade:s.decade,mode:s.mfgMode,period:s.period,measure:s.measure,scale:s.scale,points:s.points?1:0,ptColor:s.ptColor,pwView:s.pwView,pwCat:s.pwCat,pwPts:s.pwPts,pwScale:s.pwScale}).toString());
+ location.replace("#"+new URLSearchParams({tab:curTab,layer:s.layer,decade:s.decade,mode:s.mfgMode,period:s.period,measure:s.measure,scale:s.scale,points:s.points?1:0,pwView:s.pwView,pwCat:s.pwCat,pwPts:s.pwPts,pwScale:s.pwScale}).toString());
 }
 function showTip(e,h){const b=document.getElementById("main").getBoundingClientRect();tip.style("display","block").html(h).style("left",Math.min(e.clientX-b.left+12,b.width-370)+"px").style("top",(e.clientY-b.top+12)+"px")}
 function hideTip(){tip.style("display","none")}
@@ -282,7 +278,7 @@ function setTab(t,keepLayer){curTab=t;d3.selectAll("#tabs button").classed("acti
   if(!(inTab&&cur!="none"))d3.select(`#tab-${t} input[name=layer][value=${lastLayer[t]}]`).property("checked",true);}}
 d3.selectAll("#tabs button").on("click",function(){const cur=d3.select("input[name=layer]:checked").property("value");if(cur!="none")lastLayer[curTab]=cur;setTab(this.dataset.tab);render()});
 const h=st(); if(h.get("layer")){const L=h.get("layer");let t=h.get("tab");if(!t||(L!="none"&&TAB_OF(L)!=t)||d3.select(`#tab-${t} input[name=layer][value=${L}]`).empty())t=TAB_OF(L);setTab(t,true);d3.select(`#tab-${t} input[name=layer][value=${L}]`).property("checked",true)}
-["decade","mfgMode:mode","period","measure","scale","pwView","pwCat","pwPts","pwScale","ptColor"].forEach(k=>{const[id,key]=k.split(":");const v=h.get(key||id);if(v)d3.select("#"+id).property("value",v)});
+["decade","mfgMode:mode","period","measure","scale","pwView","pwCat","pwPts","pwScale"].forEach(k=>{const[id,key]=k.split(":");const v=h.get(key||id);if(v)d3.select("#"+id).property("value",v)});
 if(h.get("points")=="0")d3.select("#points").property("checked",false);
 d3.selectAll("input,select").on("input change",render); render();
 </script></body></html>
