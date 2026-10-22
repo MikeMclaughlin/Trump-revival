@@ -22,8 +22,9 @@ header h1{font-size:19px;margin:0 0 4px}
 #powerList table{border-collapse:collapse;width:100%}
 #powerList th,#powerList td{border-bottom:1px solid #e2e8f0;padding:3px 6px;text-align:left;vertical-align:top}
 #powerList th{background:#f7fafc}
-#main{flex:1;min-width:600px;position:relative}
+#main{flex:1;min-width:600px;position:relative;background:#fff}
 svg{display:block;width:100%;height:auto;background:#fff}
+#map{width:90%}
 .st{stroke:#fff;stroke-width:.7}
 .st.nodata{fill:#e2e8f0 !important}
 .cd{stroke:#fff;stroke-width:.25}
@@ -119,14 +120,14 @@ const tip=d3.select("#tip");
 const states=gS.selectAll("path").data(DATA.states.features).join("path").attr("class","st").attr("d",path);
 const cds=gC.selectAll("path").data(DATA.cds.features).join("path").attr("class","cd").attr("d",path);
 gL.selectAll("path").data(DATA.states.features).join("path").attr("class","stline").attr("d",path);
-const CATCOL={"Manufacturing / defense production contract (NAICS 31-33)":"#dd6b20","Construction / utilities contract (NAICS 23, 221x)":"#38a169","Energy / Commerce / Transportation grant":"#805ad5"};
+const L2COL="#dd6b20", L2LBL="Federal awards (contracts and grants)";
 const pts=DATA.L2.filter(d=>proj([d.lon,d.lat]));
 const rS=d3.scaleSqrt().domain([0,d3.max(pts,d=>d.amount_obligated)]).range([0,22]);
 const circ=gP.selectAll("circle").data(pts.sort((a,b)=>b.amount_obligated-a.amount_obligated)).join("circle").attr("class","pt")
- .attr("cx",d=>proj([d.lon,d.lat])[0]).attr("cy",d=>proj([d.lon,d.lat])[1]).attr("r",d=>Math.max(2.5,rS(d.amount_obligated))).attr("fill",d=>CATCOL[d.category]||"#718096")
+ .attr("cx",d=>proj([d.lon,d.lat])[0]).attr("cy",d=>proj([d.lon,d.lat])[1]).attr("r",d=>Math.max(2.5,rS(d.amount_obligated))).attr("fill",L2COL)
  .on("click",(e,d)=>window.open(d.url,"_blank"));
 const ADMCOL={"Obama":"#6b46c1","Trump I":"#e53e3e","Biden":"#319795","Trump II":"#7b341e"};
-d3.select("#ptCats").html(Object.entries(CATCOL).map(([k,c])=>`<div><span style="display:inline-block;width:10px;height:10px;border-radius:5px;background:${c}"></span> ${k}</div>`).join(""));
+d3.select("#ptCats").html(`<div><span style="display:inline-block;width:10px;height:10px;border-radius:5px;background:${L2COL}"></span> ${L2LBL}</div>`);
 const DEC_LBL=d=>d==2020?"2020s / today":d+"s";
 const MFG_DEC_NOTE={1900:"1900s = 1899 Census of Manufactures (wage earners only)",1910:"1910s = 1919 Census of Manufactures (wage earners only)",1920:"1920s = 1929 Census of Manufactures (wage earners only)",1930:"1930s = 1939 BLS annual average (only 1930s year available)"};
 // ---- Layer 6: power & fusion (consolidated: every award, loan and announcement grouped into projects) ----
@@ -269,7 +270,7 @@ function render(){
 function showTip(e,h){const b=document.getElementById("main").getBoundingClientRect();tip.style("display","block").html(h).style("left",Math.min(e.clientX-b.left+12,b.width-370)+"px").style("top",(e.clientY-b.top+12)+"px")}
 function hideTip(){tip.style("display","none")}
 states.on("mousemove",(e,d)=>showTip(e,tipFn(d.properties.STUSPS))).on("mouseout",hideTip);
-circ.on("mousemove",(e,d)=>showTip(e,`<b>${d.recipient}</b><br>${d.agency}${d.sub_agency&&d.sub_agency!=d.agency?" / "+d.sub_agency:""}<br>Obligated: <b>${money(d.amount_obligated)}</b><br>Signed: ${d.date_signed||"n/a"}${d.period_start?" · period start "+d.period_start:""}${d.administration?` · <b style="color:${ADMCOL[d.administration]}">${d.administration}</b> administration`:""}<br>${d.pop_city||d.pop_county||""}, ${d.pop_state} ${d.pop_zip5||""} (${d.geocode})<br>${d.category}${d.naics?" · NAICS "+d.naics:""}<br><span style="font-size:11px">${d.description}</span><br><i>Award ${d.award_id}. Click to open on USAspending.gov</i>`)).on("mouseout",hideTip);
+circ.on("mousemove",(e,d)=>showTip(e,`<b>${d.recipient}</b><br>${d.agency}${d.sub_agency&&d.sub_agency!=d.agency?" / "+d.sub_agency:""}<br>Obligated: <b>${money(d.amount_obligated)}</b><br>Signed: ${d.date_signed||"n/a"}${d.period_start?" · period start "+d.period_start:""}${d.administration?` · <b style="color:${ADMCOL[d.administration]}">${d.administration}</b> administration`:""}<br>${d.pop_city||d.pop_county||""}, ${d.pop_state} ${d.pop_zip5||""} (${d.geocode})<br>Federal award${d.naics?" · NAICS "+d.naics:""}<br><span style="font-size:11px">${d.description}</span><br><i>Award ${d.award_id}. Click to open on USAspending.gov</i>`)).on("mouseout",hideTip);
 // init from hash
 let curTab="mfg"; const CONG=["senate","house","cds"]; const TAB_OF=L=>CONG.includes(L)?"congress":L=="power"?"power":"mfg"; const lastLayer={mfg:"mfg",congress:"senate",power:"power"};
 function setTab(t,keepLayer){curTab=t;d3.selectAll("#tabs button").classed("active",function(){return this.dataset.tab==t});
