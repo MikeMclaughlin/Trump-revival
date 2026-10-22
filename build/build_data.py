@@ -90,7 +90,11 @@ L3=pd.DataFrame(sp); L3.to_csv(D+"layer3_federal_obligations_by_state.csv",index
 for per in periods: 
     x=L3[L3.period==per]; print(per, "c+g $B",round(x.contracts_plus_grants.sum()/1e9,1), "missing",x.contracts_plus_grants.isna().sum())
 # ---------------- Layer 2: awards ----------------
-aw=json.load(open(R+"awards.json")); det=json.load(open(R+"award_details.json"))
+aw=json.load(open(R+"awards_2016.json")); det=json.load(open(R+"award_details_2016.json"))
+_seen=set(); aw=[r for r in aw if not (r["generated_internal_id"] in _seen or _seen.add(r["generated_internal_id"]))]
+def admin(dt):
+    if not dt: return None
+    return "Obama" if dt<"2017-01-20" else "Trump I" if dt<"2021-01-20" else "Biden" if dt<"2025-01-20" else "Trump II"
 zc=pd.read_csv(R+"2024_Gaz_zcta_national.txt",sep="\t",dtype=str); zc.columns=[c.strip() for c in zc.columns]
 zc=dict(zip(zc.GEOID,zip(zc.INTPTLAT.astype(float),zc.INTPTLONG.astype(float))))
 fips["key"]=fips.USPS+"|"+fips.NAME.str.upper().str.replace(r" (COUNTY|PARISH|BOROUGH|CITY AND BOROUGH|CENSUS AREA|MUNICIPALITY)$","",regex=True)
@@ -109,8 +113,9 @@ for r in aw:
         url=f"https://www.usaspending.gov/award/{gid}")
     if pop_.get("location_country_code") not in (None,"USA") or not pop_.get("state_code"):
         rec["excluded_reason"]="Place of performance outside the US"; excl.append(rec); continue
-    if ppos and ppos<"2025-01-20":
-        rec["excluded_reason"]=f"Award period began {ppos}, before Jan 20, 2025"; excl.append(rec); continue
+    rec["administration"]=admin(rec["date_signed"] or ppos)
+    if ppos and ppos<"2016-01-01":
+        rec["excluded_reason"]=f"Award period began {ppos}, before Jan 1, 2016"; excl.append(rec); continue
     ll=None; prec=None; st=pop_["state_code"]
     if pop_.get("zip5") and pop_["zip5"] in zc: ll=zc[pop_["zip5"]]; prec="ZIP centroid"
     elif pop_.get("county_name") and f"{st}|{pop_['county_name'].upper().replace(' (CITY)','')}" in cty: ll=cty[f"{st}|{pop_['county_name'].upper().replace(' (CITY)','')}"]; prec="County centroid"
