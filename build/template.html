@@ -47,9 +47,7 @@ select{width:100%;margin:2px 0 4px}
  <h3>Shaded layer (pick one)</h3>
  <label><input type="radio" name="layer" value="spend" checked> 3. Federal obligations by state</label>
  <div id="spendOpts" style="margin-left:18px">
-   <select id="period"><option value="trump2">Trump admin: Jan 20, 2025 to Oct 21, 2026</option><option value="2020pre">Comparison: Jan 1, 2020 to Jan 19, 2025</option></select>
-   <select id="measure"><option value="contracts_plus_grants">Contracts + grants</option><option value="contracts">Contracts only</option><option value="grants">Grants only</option><option value="all_award_types">All award types (incl. direct payments, loans)</option></select>
-   <select id="scale"><option value="total">Total dollars</option><option value="percap">Per capita</option><option value="permonth">Dollars per month (compare periods)</option></select></div>
+   <select id="period"><option value="trump2">Trump admin: Jan 20, 2025 to Oct 21, 2026</option><option value="2020pre">Comparison: Jan 1, 2020 to Jan 19, 2025</option></select></div>
  <label><input type="radio" name="layer" value="none"> No shading</label>
  </div>
  <div class="tabpane" id="tab-power" style="display:none">
@@ -58,8 +56,7 @@ select{width:100%;margin:2px 0 4px}
  <div id="powerOpts" style="margin-left:18px">
    <select id="pwView" title="Points only, or points plus a per-state choropleth"><option value="both">Points + state totals</option><option value="points">Points only</option><option value="state">State totals only</option></select>
    <select id="pwCat" title="Filter points and state totals by category"><option value="all">All categories</option></select>
-   <select id="pwPts" title="Which award statuses to show as points"><option value="all">Points: all statuses</option><option value="obl">Points: obligated only</option><option value="loan">Points: loans only</option><option value="ann">Points: announced only</option></select>
-   <select id="pwScale" title="State totals in dollars or per person"><option value="total">Total dollars</option><option value="percap">Per capita</option></select></div>
+   <select id="pwPts" title="Which award statuses to show as points"><option value="all">Points: all statuses</option><option value="obl">Points: obligated only</option><option value="loan">Points: loans only</option><option value="ann">Points: announced only</option></select></div>
  </div>
  <h3>Point overlays</h3>
  <label id="ptLbl"><input type="checkbox" id="points" checked> 2. Largest federal awards since Jan 1, 2016</label>
@@ -107,7 +104,6 @@ const PROJ=d3.groups(L6,d=>d.project_id).map(([id,pc])=>{pc=pc.slice().sort((a,b
  return {id,pieces:pc,recipient:f.recipient,name:f.project_name,category:f.category,total:f.project_combined_total,ann:f.project_announced_part||0,lat:f.lat,lon:f.lon,state:f.state,state_for_totals:f.state_for_totals,geocode:f.geocode,url:f.url,types:new Set(pc.map(pwStat))}}).sort((a,b)=>b.total-a.total);
 const L6pts=PROJ.filter(d=>d.lat!=null&&proj([d.lon,d.lat]));
 const L6off=PROJ.filter(d=>!(d.lat!=null&&proj([d.lon,d.lat])));
-const POPNOW=Object.fromEntries(DATA.L3.filter(r=>r.period=="trump2").map(r=>[r.state,r.population]));
 d3.select("#pwCat").selectAll("option.c").data(PWCATS).join("option").attr("class","c").attr("value",d=>d).text(d=>d);
 const R6MIN=2, rS6=d3.scaleSqrt().domain([0,d3.max(L6pts,d=>d.total)]).range([0,28]); const r6=v=>R6MIN+rS6(v);
 const p6=gP6.selectAll("circle").data(L6pts).join("circle").attr("class","pp")
@@ -133,9 +129,9 @@ function pwSummary(){const tot=d3.sum(PROJ,d=>d.total),ann=d3.sum(PROJ,d=>d.ann)
   by.map(([c,[t,a,n]])=>`${c} ${money(t)}${a>0?` (incl. ${money(a)} announced)`:""}`).join(" · ")+`. Fusion is ${fmt1(fu[1][0]/tot*100)}% of the total. No private investment included.`}
 function st(){const h=new URLSearchParams(location.hash.slice(1));return h}
 function S(){return{layer:d3.select("input[name=layer]:checked").property("value"),
- period:d3.select("#period").property("value"),measure:d3.select("#measure").property("value"),scale:d3.select("#scale").property("value"),points:d3.select("#points").property("checked"),
- pwView:d3.select("#pwView").property("value"),pwCat:d3.select("#pwCat").property("value"),pwPts:d3.select("#pwPts").property("value"),pwScale:d3.select("#pwScale").property("value")}}
-function spendVal(s,r){if(!r)return null;let v=r[s.measure];if(v==null)return null;if(s.scale=="percap")return v/r.population;if(s.scale=="permonth")return v/r.months;return v}
+ period:d3.select("#period").property("value"),points:d3.select("#points").property("checked"),
+ pwView:d3.select("#pwView").property("value"),pwCat:d3.select("#pwCat").property("value"),pwPts:d3.select("#pwPts").property("value")}}
+function spendVal(s,r){return r?r.contracts_plus_grants:null}
 function legendQuant(sc,f,title,extra){const q=sc.quantiles?sc.quantiles():null;const r=sc.range();let h=`<b>${title}</b> `;
  if(q){const b=[sc.domain()[0],...q];r.forEach((c,i)=>h+=`<span class="sw" style="background:${c}"></span>${f(b[i])}+`);} h+=(extra||"");d3.select("#legend").html(h)}
 function legendCat(items,title,extra){d3.select("#legend").html(`<b>${title}</b> `+items.map(([c,l])=>`<span class="sw" style="background:${c}"></span>${l}`).join("")+(extra||""))}
@@ -143,8 +139,6 @@ function note(t){d3.select("#note").style("display",t?"block":"none").html(t||""
 let tipFn=()=>"";
 function render(){
  const s=S();
- d3.select("#measure").selectAll("option").attr("disabled",function(){return (this.value=="all_award_types"&&s.period!="trump2")?true:null});
- if(s.measure=="all_award_types"&&s.period!="trump2"){d3.select("#measure").property("value","contracts_plus_grants");s.measure="contracts_plus_grants"}
  const showPts=s.points; gP.style("display",showPts?null:"none");
  let notes=[];
  let fill=()=>"#edf2f7", nod=()=>false, tot="";
@@ -152,21 +146,21 @@ if(s.layer=="spend"){
   const per=s.period;
   {const dd=L3[per];const vals=Object.values(dd).map(r=>spendVal(s,r)).filter(v=>v!=null);const sc=d3.scaleQuantile().domain(vals).range(d3.schemeGreens[7]);
    fill=id=>{const v=spendVal(s,dd[id]);return v==null?null:sc(v)};const r0=Object.values(dd)[0];
-   const ml={contracts_plus_grants:"contracts + grants",contracts:"contracts",grants:"grants",all_award_types:"all award types"}[s.measure];
-   legendQuant(sc,s.scale=="percap"?v=>"$"+fmt(Math.round(v)):money,`Obligations, ${ml}, ${r0.start} to ${r0.end}${s.scale=="percap"?", per person":s.scale=="permonth"?", per month":""}`,` (place of performance)`);
-   const t=d3.sum(Object.values(dd),r=>r[s.measure]);tot=`Layer 3: ${money(t)} obligated (${ml}, 50 states + DC, ${r0.start} to ${r0.end}; ${money(t/r0.months)}/month)`;
+   const ml="contracts + grants";
+   legendQuant(sc,money,`Obligations, ${ml}, ${r0.start} to ${r0.end}`,` (place of performance)`);
+   const t=d3.sum(Object.values(dd),r=>r.contracts_plus_grants);tot=`Layer 3: ${money(t)} obligated (${ml}, 50 states + DC, ${r0.start} to ${r0.end}; ${money(t/r0.months)}/month)`;
    if(per=="trump2")notes.push("Obligations are not outlays. FY2026 grant reporting lags, so recent grant totals are understated.");
    tipFn=id=>{const r=dd[id];if(!r)return`<b>${NAMES[id]}</b><br>No data`;return `<b>${NAMES[id]}</b> (${r.start} to ${r.end})<br>Contracts: ${money(r.contracts)}<br>Grants: ${money(r.grants)}<br>Contracts + grants: <b>${money(r.contracts_plus_grants)}</b> ($${fmt(Math.round(r.per_capita_contracts_plus_grants))}/person, ${money(r.monthly_rate_contracts_plus_grants)}/month)`+(r.all_award_types!=null?`<br>All award types: ${money(r.all_award_types)}`:"")+`<br>Population used: ${fmt(r.population)} (${r.population_source})<br><i>Source: USAspending.gov API</i>`}}
  } else if(s.layer=="power"){
   {
    const sel=PROJ.filter(d=>pwFilt(d,s)&&d.state_for_totals);
    const bySt=d3.rollup(sel,v=>d3.sum(v,d=>d.total),d=>d.state_for_totals);
-   const val=id=>{const v=bySt.get(id);if(v==null)return null;return s.pwScale=="percap"?v/POPNOW[id]:v};
+   const val=id=>{const v=bySt.get(id);if(v==null)return null;return v};
    const catTxt=s.pwCat=="all"?"all categories":s.pwCat;
    const catKey=PWCATS.map(c=>`<span class="sw" style="background:${PWCOL[c]};border-radius:6px"></span>${c}`).join(" ")+` &nbsp; <span style="display:inline-block;width:10px;height:10px;border:2px dashed #1a202c;border-radius:6px;vertical-align:middle"></span> dashed outline = includes announced, not yet obligated (faded fill = announced only)`+sizeLegend();
    if(s.pwView!="points"){const vals=[...bySt.keys()].map(val).filter(v=>v!=null);const sc=vals.length>1?d3.scaleQuantile().domain(vals).range(d3.schemePurples[Math.min(7,Math.max(3,vals.length))]):d3.scaleOrdinal().range(["#6b46c1"]);
     fill=id=>{const v=val(id);return v==null?null:sc(v)};
-    legendQuant(sc,s.pwScale=="percap"?v=>"$"+fmt1(v):money,`State totals: total federal funding (all types combined), ${catTxt}${s.pwScale=="percap"?", per person":""}`,` &nbsp; <span class="sw" style="background:#e2e8f0"></span>none &nbsp; Points: `+catKey);}
+    legendQuant(sc,money,`State totals: total federal funding (all types combined), ${catTxt}`,` &nbsp; <span class="sw" style="background:#e2e8f0"></span>none &nbsp; Points: `+catKey);}
    else{fill=()=>null;legendCat([],"Power &amp; fusion projects",catKey);}
    tot=pwSummary();
    notes.push("Each marker is one project: every grant, contract, loan (counted at face value) and announced award to the same recipient at the same site in the same category is added into one total federal funding figure. Announced, not-yet-obligated amounts are included and flagged with a dashed outline. Where an announcement has partly turned into obligated awards, only the remainder is counted, so nothing is double-counted.");
@@ -187,7 +181,7 @@ if(s.layer=="spend"){
  const off=DATA.L2.filter(d=>!proj([d.lon,d.lat]));
  d3.select("#totals").html([tot,showPts?`Layer 2: ${pts.length} largest awards since Jan 1, 2016 plotted, ${money(ptot)} obligated (by administration when signed: ${Object.keys(ADMCOL).map(a=>{const x=pts.filter(d=>d.administration==a);return `${a} ${x.length} awards ${money(d3.sum(x,d=>d.amount_obligated))}`}).join(" · ")}) (+${off.length} in ${[...new Set(off.map(d=>d.pop_state))].join(", ")}, ${money(d3.sum(off,d=>d.amount_obligated))}, listed in the CSV but outside this map)`:""].filter(x=>x).join(" &nbsp;|&nbsp; "));
  note(notes.join(" "));
- location.replace("#"+new URLSearchParams({tab:curTab,layer:s.layer,period:s.period,measure:s.measure,scale:s.scale,points:s.points?1:0,pwView:s.pwView,pwCat:s.pwCat,pwPts:s.pwPts,pwScale:s.pwScale}).toString());
+ location.replace("#"+new URLSearchParams({tab:curTab,layer:s.layer,period:s.period,points:s.points?1:0,pwView:s.pwView,pwCat:s.pwCat,pwPts:s.pwPts}).toString());
 }
 function showTip(e,h){const b=document.getElementById("main").getBoundingClientRect();tip.style("display","block").html(h).style("left",Math.min(e.clientX-b.left+12,b.width-370)+"px").style("top",(e.clientY-b.top+12)+"px")}
 function hideTip(){tip.style("display","none")}
@@ -201,7 +195,7 @@ function setTab(t,keepLayer){curTab=t;d3.selectAll("#tabs button").classed("acti
   if(!(inTab&&cur!="none"))d3.select(`#tab-${t} input[name=layer][value=${lastLayer[t]}]`).property("checked",true);}}
 d3.selectAll("#tabs button").on("click",function(){const cur=d3.select("input[name=layer]:checked").property("value");if(cur!="none")lastLayer[curTab]=cur;setTab(this.dataset.tab);render()});
 const h=st(); if(h.get("layer")){const L=h.get("layer");let t=h.get("tab");if(!t||(L!="none"&&TAB_OF(L)!=t)||d3.select(`#tab-${t} input[name=layer][value=${L}]`).empty())t=TAB_OF(L);setTab(t,true);d3.select(`#tab-${t} input[name=layer][value=${L}]`).property("checked",true)}
-["period","measure","scale","pwView","pwCat","pwPts","pwScale"].forEach(k=>{const[id,key]=k.split(":");const v=h.get(key||id);if(v)d3.select("#"+id).property("value",v)});
+["period","pwView","pwCat","pwPts"].forEach(k=>{const[id,key]=k.split(":");const v=h.get(key||id);if(v)d3.select("#"+id).property("value",v)});
 if(h.get("points")=="0")d3.select("#points").property("checked",false);
 d3.selectAll("input,select").on("input change",render); render();
 </script></body></html>
